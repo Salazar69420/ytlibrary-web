@@ -176,12 +176,10 @@ export default function Home() {
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Library size={14} />
                   <span>{videos.length} video{videos.length !== 1 ? "s" : ""}</span>
-                  {typeof activeView === "object" && (
+                  {typeof activeView === "object" && activeView.type !== "brain" && (
                     <span className="text-gray-600">
-                      — filtered by {activeView.type === "channel" ? "channel" : "tag"}:{" "}
-                      <span className="text-gray-400">
-                        {activeView.type === "channel" ? activeView.name : activeView.name}
-                      </span>
+                      — filtered by {activeView.type}:{" "}
+                      <span className="text-gray-400">{activeView.name}</span>
                     </span>
                   )}
                 </div>
