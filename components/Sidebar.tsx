@@ -21,7 +21,7 @@ export default function Sidebar({
   const isLib = activeView === "library";
 
   return (
-    <aside className="flex flex-col w-56 shrink-0 bg-surface-raised border-r border-surface-border h-full overflow-y-auto">
+    <aside className="flex flex-col w-56 shrink-0 bg-surface-raised border-r border-surface-border h-full overflow-y-auto md:h-full">
       {/* Library */}
       <div className="px-3 pt-4 pb-2">
         <NavItem
