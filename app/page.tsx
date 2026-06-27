@@ -356,7 +356,7 @@ export default function Home() {
               <Download size={15} />
             </button>
             <button onClick={() => setShowSettings(true)} title="Settings"
-              className="hidden md:flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
+              className="flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
               <Settings size={15} />
             </button>
             <button onClick={() => setShowImport(true)}
