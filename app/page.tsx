@@ -155,6 +155,18 @@ export default function Home() {
             <Download size={15} />
           </button>
           <button
+            onClick={() => { setActiveTab("search"); setSidebarView("search"); setSelectedVideo(null); }}
+            className={cn(
+              "hidden md:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl transition-colors border",
+              activeTab === "search"
+                ? "bg-brand/20 text-blue-300 border-brand/40"
+                : "text-gray-400 hover:text-white border-surface-border hover:bg-surface-hover"
+            )}
+          >
+            <Search size={14} />
+            Search YouTube
+          </button>
+          <button
             onClick={() => setShowImport(true)}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-medium rounded-xl transition-colors"
           >
