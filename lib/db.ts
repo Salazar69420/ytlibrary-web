@@ -60,6 +60,10 @@ export async function getVideo(video_id: string): Promise<Video | undefined> {
   return db.videos.get(video_id);
 }
 
+export async function updateVideoTranscript(video_id: string, transcript: string) {
+  await db.videos.update(video_id, { transcript });
+}
+
 export async function deleteVideo(video_id: string) {
   await db.transaction("rw", db.videos, db.video_tags, db.brain_items, async () => {
     await db.videos.delete(video_id);

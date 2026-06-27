@@ -1,18 +1,21 @@
 "use client";
 import { useState } from "react";
-import { X, Download, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { X, Download, Loader2, AlertCircle, CheckCircle, Info } from "lucide-react";
 import { saveVideo } from "@/lib/db";
+import { getApifyToken } from "@/lib/settings";
 import type { Video } from "@/lib/types";
 
 interface Props {
   onClose: () => void;
   onImported: (video: Video) => void;
+  onOpenSettings?: () => void;
 }
 
-export default function ImportModal({ onClose, onImported }: Props) {
+export default function ImportModal({ onClose, onImported, onOpenSettings }: Props) {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const hasToken = getApifyToken().length > 0;
 
   const handleImport = async () => {
     const trimmed = url.trim();
@@ -23,7 +26,7 @@ export default function ImportModal({ onClose, onImported }: Props) {
       const res = await fetch("/api/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
+        body: JSON.stringify({ url: trimmed, apifyToken: getApifyToken() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Import failed");
@@ -61,6 +64,21 @@ export default function ImportModal({ onClose, onImported }: Props) {
               className="w-full bg-surface border border-border rounded-xl px-3.5 py-2.5 text-sm text-text placeholder-muted focus:outline-none focus:border-primary/60 transition-colors"
             />
           </div>
+
+          {!hasToken && (
+            <div className="flex items-start gap-2 text-xs rounded-xl px-3.5 py-2.5 bg-primary/10 text-dim border border-primary/20">
+              <Info size={14} className="shrink-0 mt-0.5 text-primary" />
+              <span>
+                No Apify token set, so transcripts won&apos;t be pulled.{" "}
+                {onOpenSettings && (
+                  <button onClick={onOpenSettings} className="text-primary hover:underline font-medium">
+                    Add it in Settings
+                  </button>
+                )}
+                {" "}to capture transcripts for your brains.
+              </span>
+            </div>
+          )}
 
           {message && (
             <div

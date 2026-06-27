@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Library, Brain, Search, Plus, Download, Upload,
-  Menu, X, ChevronLeft, CheckSquare,
+  Menu, X, ChevronLeft, CheckSquare, Settings,
 } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
 import SearchView from "@/components/SearchView";
@@ -11,6 +11,7 @@ import BrainView from "@/components/BrainView";
 import SelectionBar from "@/components/SelectionBar";
 import ImportModal from "@/components/ImportModal";
 import CreateBrainModal from "@/components/CreateBrainModal";
+import SettingsModal from "@/components/SettingsModal";
 import {
   getVideos, getChannels, getTags, getBrains, getVideoTags,
   deleteBrain, exportAllData, importAllData,
@@ -40,6 +41,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showImport, setShowImport]   = useState(false);
   const [showNewBrain, setShowNewBrain] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastIndexRef = useRef<number | null>(null);
@@ -273,6 +275,9 @@ export default function Home() {
             </SideSection>
             {/* Mobile-only data actions */}
             <div className="mt-auto px-3 pb-6 pt-3 border-t border-border flex flex-col gap-1">
+              <button onClick={() => { setShowSettings(true); setSidebarOpen(false); }} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors">
+                <Settings size={15} /> Settings
+              </button>
               <button onClick={handleImportData} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors">
                 <Upload size={15} /> Import backup
               </button>
@@ -349,6 +354,10 @@ export default function Home() {
             <button onClick={handleExport} title="Export backup"
               className="hidden md:flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
               <Download size={15} />
+            </button>
+            <button onClick={() => setShowSettings(true)} title="Settings"
+              className="hidden md:flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
+              <Settings size={15} />
             </button>
             <button onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary-dim text-white text-xs font-semibold rounded-xl transition-colors">
@@ -461,7 +470,8 @@ export default function Home() {
 
           {isBrains && brainId && (
             <div className="flex-1 overflow-hidden animate-fade-in">
-              <BrainView brainId={brainId} onBack={() => setBrainId(null)} onChanged={load} />
+              <BrainView brainId={brainId} onBack={() => setBrainId(null)} onChanged={load}
+                onOpenSettings={() => setShowSettings(true)} />
             </div>
           )}
         </main>
@@ -487,11 +497,15 @@ export default function Home() {
       {/* ── Modals ──────────────────────────────────────────────────────── */}
       {showImport && (
         <ImportModal onClose={() => setShowImport(false)}
+          onOpenSettings={() => { setShowImport(false); setShowSettings(true); }}
           onImported={(v) => { setShowImport(false); load(); setDetail(v); setTab("library"); }} />
       )}
       {showNewBrain && (
         <CreateBrainModal onClose={() => setShowNewBrain(false)}
           onCreated={(id) => { setShowNewBrain(false); load(); goBrain(id); }} />
+      )}
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

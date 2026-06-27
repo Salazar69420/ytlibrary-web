@@ -1,68 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
-
-function extractVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
-  ];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m) return m[1];
-  }
-  return null;
-}
-
+import { extractVideoId, getPlayerData } from "@/lib/youtube";
+import { fetchApifyTranscript } from "@/lib/apify";
 
 export async function POST(req: NextRequest) {
-  const { url } = await req.json();
+  const { url, apifyToken } = await req.json();
   const video_id = extractVideoId(url ?? "");
   if (!video_id) {
     return NextResponse.json({ error: "Invalid YouTube URL" }, { status: 400 });
   }
+  const canonical = `https://www.youtube.com/watch?v=${video_id}`;
 
-  // Try oEmbed first (no API key needed)
-  const oembed = await fetch(
-    `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${video_id}&format=json`
-  ).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-
-  if (!oembed) {
-    return NextResponse.json({ error: "Could not fetch video info" }, { status: 502 });
-  }
-
-  // Try to get extra info from YouTube's public API (no key needed for basic info)
-  let view_count = 0;
-  let upload_date = "";
+  let title: string | undefined;
+  let channel: string | undefined;
   let channel_id = "";
   let duration = 0;
+  let view_count = 0;
+  let upload_date = "";
+  let transcript = "";
 
-  const ytPage = await fetch(`https://www.youtube.com/watch?v=${video_id}`, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-  }).then((r) => (r.ok ? r.text() : null)).catch(() => null);
+  // Preferred path: Apify actor gives the transcript AND reliable metadata.
+  if (apifyToken) {
+    try {
+      const a = await fetchApifyTranscript(apifyToken, canonical);
+      if (a) {
+        transcript = a.transcript || "";
+        title = a.title || title;
+        channel = a.channel || channel;
+        channel_id = a.channel_id || channel_id;
+        duration = a.duration || duration;
+        view_count = a.view_count || view_count;
+        upload_date = a.upload_date || upload_date;
+      }
+    } catch {
+      // Fall through to the metadata-only path below; transcript stays empty.
+    }
+  }
 
-  if (ytPage) {
-    const viewMatch = ytPage.match(/"viewCount":"(\d+)"/);
-    if (viewMatch) view_count = parseInt(viewMatch[1]);
+  // Fill any gaps (no token, or Apify missing fields) via player data + oEmbed.
+  if (!title || !channel) {
+    const player = await getPlayerData(video_id);
+    title = title || player.title;
+    channel = channel || player.channel;
+    channel_id = channel_id || player.channelId || "";
+    duration = duration || player.durationSeconds || 0;
+    view_count = view_count || player.viewCount || 0;
+    upload_date = upload_date || player.uploadDate || "";
 
-    const dateMatch = ytPage.match(/"uploadDate":"([^"]+)"/);
-    if (dateMatch) upload_date = dateMatch[1].replace(/-/g, "");
-
-    const channelMatch = ytPage.match(/"channelId":"([^"]+)"/);
-    if (channelMatch) channel_id = channelMatch[1];
-
-    const durMatch = ytPage.match(/"approxDurationMs":"(\d+)"/);
-    if (durMatch) duration = Math.round(parseInt(durMatch[1]) / 1000);
+    if (!title || !channel) {
+      const oembed = await fetch(
+        `https://www.youtube.com/oembed?url=${encodeURIComponent(canonical)}&format=json`
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      title = title || oembed?.title || "Unknown";
+      channel = channel || oembed?.author_name || "Unknown";
+    }
   }
 
   return NextResponse.json({
     video_id,
-    url: `https://www.youtube.com/watch?v=${video_id}`,
-    title: oembed.title ?? "Unknown",
-    channel: oembed.author_name ?? "Unknown",
+    url: canonical,
+    title,
+    channel,
     channel_id,
     thumbnail_url: `https://i.ytimg.com/vi/${video_id}/maxresdefault.jpg`,
     upload_date,
     duration,
     view_count,
+    transcript,
     added_at: new Date().toISOString(),
   });
 }

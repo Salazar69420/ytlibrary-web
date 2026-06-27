@@ -2,11 +2,13 @@
 import { useState, useEffect } from "react";
 import {
   Brain, ArrowLeft, GripVertical, Trash2, FileText, Zap, Copy, Check,
-  Edit3, Save, X,
+  Edit3, Save, X, Loader2, KeyRound, AlertCircle,
 } from "lucide-react";
 import {
   getBrain, getBrainItems, removeFromBrain, updateBrain, updateBrainItem,
+  updateVideoTranscript,
 } from "@/lib/db";
+import { getApifyToken } from "@/lib/settings";
 import { formatDuration } from "@/lib/utils";
 import type { Brain as BrainType, BrainItem, Video } from "@/lib/types";
 
@@ -14,17 +16,22 @@ interface Props {
   brainId: number;
   onBack: () => void;
   onChanged: () => void;
+  onOpenSettings?: () => void;
 }
 
 type Item = BrainItem & Video;
 
-export default function BrainView({ brainId, onBack, onChanged }: Props) {
+export default function BrainView({ brainId, onBack, onChanged, onOpenSettings }: Props) {
   const [brain, setBrain] = useState<BrainType | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [fetchProgress, setFetchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [needsToken, setNeedsToken] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const load = async () => {
     const [b, it] = await Promise.all([getBrain(brainId), getBrainItems(brainId)]);
@@ -53,10 +60,51 @@ export default function BrainView({ brainId, onBack, onChanged }: Props) {
     load();
   };
 
-  const handleExport = () => {
-    if (!brain) return;
-    const parts: string[] = [`# Brain: ${brain.name}`, brain.description ?? "", ""];
-    for (const item of items) {
+  // Fetch + persist transcripts for any items that don't have one yet, so
+  // videos imported before transcripts were captured still export fully.
+  const ensureTranscripts = async (current: Item[]): Promise<Item[]> => {
+    const missing = current.filter((it) => !it.transcript && it.video_id);
+    if (missing.length === 0) return current;
+
+    const token = getApifyToken();
+    if (!token) {
+      setNeedsToken(true);
+      return current;
+    }
+
+    const fetched = new Map<string, string>();
+    setFetchProgress({ done: 0, total: missing.length });
+    let done = 0;
+    for (const it of missing) {
+      try {
+        const res = await fetch("/api/transcript", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ video_id: it.video_id, apifyToken: token }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.transcript) {
+            await updateVideoTranscript(it.video_id, data.transcript);
+            fetched.set(it.video_id, data.transcript);
+          }
+        } else {
+          const data = await res.json().catch(() => ({}));
+          if (data?.error) setExportError(data.error);
+        }
+      } catch {
+        /* leave this one without a transcript */
+      }
+      done += 1;
+      setFetchProgress({ done, total: missing.length });
+    }
+    setFetchProgress(null);
+    return current.map((it) => (fetched.has(it.video_id) ? { ...it, transcript: fetched.get(it.video_id) } : it));
+  };
+
+  const buildExport = (list: Item[]): string => {
+    const parts: string[] = [`# Brain: ${brain!.name}`, brain!.description ?? "", ""];
+    for (const item of list) {
       parts.push(`## ${item.title}`);
       parts.push(`Channel: ${item.channel} | URL: ${item.url}`);
       if (item.duration) parts.push(`Duration: ${formatDuration(item.duration)}`);
@@ -67,13 +115,36 @@ export default function BrainView({ brainId, onBack, onChanged }: Props) {
       } else if (item.transcript) {
         parts.push("### Transcript");
         parts.push(item.transcript);
+      } else {
+        parts.push("_No transcript available for this video._");
       }
       parts.push("\n---\n");
     }
-    const text = parts.join("\n");
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    return parts.join("\n");
+  };
+
+  const handleExport = async () => {
+    if (!brain || exporting) return;
+    setExporting(true);
+    setNeedsToken(false);
+    setExportError("");
+    try {
+      const missing = items.filter((it) => !it.transcript && it.video_id);
+      // If transcripts are missing and there's no Apify token, prompt instead of
+      // copying a placeholder-only export.
+      if (missing.length > 0 && !getApifyToken()) {
+        setNeedsToken(true);
+        return;
+      }
+      const fresh = await ensureTranscripts(items);
+      if (fresh !== items) setItems(fresh);
+      await navigator.clipboard.writeText(buildExport(fresh));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } finally {
+      setExporting(false);
+      setFetchProgress(null);
+    }
   };
 
   const totalTokens = items.reduce((acc, item) => {
@@ -120,11 +191,22 @@ export default function BrainView({ brainId, onBack, onChanged }: Props) {
           </span>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 text-xs bg-primary hover:bg-primary-dim text-white px-3 py-1.5 rounded-xl transition-colors active:scale-[0.98]"
+            disabled={exporting}
+            className="flex items-center gap-1.5 text-xs bg-primary hover:bg-primary-dim disabled:opacity-80 text-white px-3 py-1.5 rounded-xl transition-colors active:scale-[0.98]"
           >
-            {copied ? <Check size={13} /> : <Copy size={13} />}
-            <span className="hidden sm:inline">{copied ? "Copied!" : "Export to Clipboard"}</span>
-            <span className="sm:hidden">{copied ? "Copied!" : "Export"}</span>
+            {exporting ? <Loader2 size={13} className="animate-spin" /> : copied ? <Check size={13} /> : <Copy size={13} />}
+            <span className="hidden sm:inline">
+              {fetchProgress
+                ? `Fetching transcripts ${fetchProgress.done}/${fetchProgress.total}…`
+                : exporting
+                ? "Exporting…"
+                : copied
+                ? "Copied!"
+                : "Export to Clipboard"}
+            </span>
+            <span className="sm:hidden">
+              {fetchProgress ? `${fetchProgress.done}/${fetchProgress.total}` : exporting ? "…" : copied ? "Copied!" : "Export"}
+            </span>
           </button>
         </div>
       </div>
@@ -144,6 +226,28 @@ export default function BrainView({ brainId, onBack, onChanged }: Props) {
             className="w-full text-sm bg-card border border-border rounded-xl px-2.5 py-1.5 text-dim placeholder-muted focus:outline-none focus:border-primary/60 resize-none transition-colors"
             rows={2}
           />
+        </div>
+      )}
+
+      {/* Apify token prompt / export errors */}
+      {needsToken && (
+        <div className="mx-4 sm:mx-5 mt-3 flex items-start gap-2 text-sm rounded-xl px-3.5 py-2.5 bg-primary/10 text-dim border border-primary/20">
+          <KeyRound size={15} className="shrink-0 mt-0.5 text-primary" />
+          <span>
+            Transcripts haven&apos;t been captured for these videos. Add your Apify token in{" "}
+            {onOpenSettings ? (
+              <button onClick={onOpenSettings} className="text-primary hover:underline font-medium">Settings</button>
+            ) : (
+              <span className="text-primary font-medium">Settings</span>
+            )}
+            , then export again to pull and include them.
+          </span>
+        </div>
+      )}
+      {exportError && (
+        <div className="mx-4 sm:mx-5 mt-3 flex items-start gap-2 text-sm rounded-xl px-3.5 py-2.5 bg-danger/10 text-danger border border-danger/30">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+          <span>{exportError}</span>
         </div>
       )}
 

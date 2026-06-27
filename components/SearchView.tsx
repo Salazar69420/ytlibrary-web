@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Search, Loader2, Plus, Check, Clock, Eye, X, Download } from "lucide-react";
 import { saveVideo } from "@/lib/db";
+import { getApifyToken } from "@/lib/settings";
 import { formatDuration, formatViews, cn } from "@/lib/utils";
 
 interface Result {
@@ -60,7 +61,7 @@ export default function SearchView({ onImported }: { onImported: () => void }) {
       const res = await fetch("/api/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: video.url }),
+        body: JSON.stringify({ url: video.url, apifyToken: getApifyToken() }),
       });
       if (res.ok) {
         const data = await res.json();
