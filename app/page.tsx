@@ -103,6 +103,9 @@ export default function Home() {
     if (typeof v === "object" && v.type === "brain") {
       setActiveBrainId(v.id);
       setActiveTab("brains");
+    } else if (v === "search") {
+      setActiveBrainId(null);
+      setActiveTab("search");
     } else {
       setActiveBrainId(null);
       setActiveTab("library");
@@ -110,7 +113,7 @@ export default function Home() {
   };
 
   const showLibraryContent = activeTab === "library" && activeBrainId === null;
-  const showBrainContent = activeTab === "brains" || activeBrainId !== null;
+  const showBrainContent = (activeTab === "brains" || activeBrainId !== null);
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-surface">
@@ -335,7 +338,7 @@ export default function Home() {
           icon={<Search size={20} />}
           label="Search"
           active={activeTab === "search"}
-          onClick={() => { setActiveTab("search"); setSelectedVideo(null); }}
+          onClick={() => { setActiveTab("search"); setSidebarView("search"); setSelectedVideo(null); }}
         />
         <TabBtn
           icon={<Brain size={20} />}

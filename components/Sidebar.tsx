@@ -1,9 +1,9 @@
 "use client";
-import { Library, Brain, Tag, ChevronRight, Plus, Trash2, Hash } from "lucide-react";
+import { Library, Brain, Tag, Search, Plus, Trash2, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Brain as BrainType, Tag as TagType } from "@/lib/types";
 
-export type View = "library" | { type: "brain"; id: number } | { type: "tag"; name: string } | { type: "channel"; name: string };
+export type View = "library" | "search" | { type: "brain"; id: number } | { type: "tag"; name: string } | { type: "channel"; name: string };
 
 interface Props {
   channels: string[];
@@ -18,17 +18,21 @@ interface Props {
 export default function Sidebar({
   channels, tags, brains, activeView, onViewChange, onCreateBrain, onDeleteBrain,
 }: Props) {
-  const isLib = activeView === "library";
-
   return (
-    <aside className="flex flex-col w-56 shrink-0 bg-surface-raised border-r border-surface-border h-full overflow-y-auto md:h-full">
-      {/* Library */}
-      <div className="px-3 pt-4 pb-2">
+    <aside className="flex flex-col w-56 shrink-0 bg-surface-raised border-r border-surface-border h-full overflow-y-auto">
+      {/* Top nav */}
+      <div className="px-3 pt-4 pb-2 flex flex-col gap-0.5">
         <NavItem
           icon={<Library size={15} />}
           label="Library"
-          active={isLib}
+          active={activeView === "library"}
           onClick={() => onViewChange("library")}
+        />
+        <NavItem
+          icon={<Search size={15} />}
+          label="Search YouTube"
+          active={activeView === "search"}
+          onClick={() => onViewChange("search")}
         />
       </div>
 
@@ -103,7 +107,7 @@ export default function Sidebar({
 
 function Section({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="px-3 pb-2 pt-3">
+    <div className="px-3 pb-2 pt-3 border-t border-surface-border">
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">{label}</span>
         {action}
@@ -127,7 +131,7 @@ function NavItem({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors truncate",
+        "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors",
         active
           ? "bg-brand/20 text-blue-300"
           : "text-gray-400 hover:text-gray-100 hover:bg-surface-hover",
