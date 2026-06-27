@@ -39,25 +39,26 @@ export default function ImportModal({ onClose, onImported }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-surface-card border border-surface-border rounded-2xl w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
-          <h2 className="text-base font-semibold text-white">Import YouTube Video</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded hover:bg-surface-hover">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card border border-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md mx-0 sm:mx-4 shadow-float animate-slide-up sm:animate-scale-in">
+        <div className="w-10 h-1 bg-muted rounded-full mx-auto mt-3 mb-1 sm:hidden" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h2 className="text-base font-semibold text-text">Import YouTube Video</h2>
+          <button onClick={onClose} className="text-subtle hover:text-text p-1 rounded-lg hover:bg-hover transition-colors">
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-5 flex flex-col gap-4">
+        <div className="p-5 flex flex-col gap-4 safe-bottom">
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">YouTube URL</label>
+            <label className="text-xs text-subtle mb-1.5 block">YouTube URL</label>
             <input
               autoFocus
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleImport()}
               placeholder="https://www.youtube.com/watch?v=..."
-              className="w-full bg-surface-raised border border-surface-border rounded-xl px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand transition-colors"
+              className="w-full bg-surface border border-border rounded-xl px-3.5 py-2.5 text-sm text-text placeholder-muted focus:outline-none focus:border-primary/60 transition-colors"
             />
           </div>
 
@@ -65,8 +66,8 @@ export default function ImportModal({ onClose, onImported }: Props) {
             <div
               className={`flex items-start gap-2 text-sm rounded-xl px-3.5 py-2.5 ${
                 status === "error"
-                  ? "bg-red-900/30 text-red-300 border border-red-800/40"
-                  : "bg-green-900/30 text-green-300 border border-green-800/40"
+                  ? "bg-danger/10 text-danger border border-danger/30"
+                  : "bg-success/10 text-success border border-success/30"
               }`}
             >
               {status === "error" ? <AlertCircle size={16} className="shrink-0 mt-0.5" /> : <CheckCircle size={16} className="shrink-0 mt-0.5" />}
@@ -77,14 +78,14 @@ export default function ImportModal({ onClose, onImported }: Props) {
           <div className="flex gap-2 justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-surface-hover rounded-xl transition-colors"
+              className="px-4 py-2 text-sm text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleImport}
               disabled={status === "loading" || !url.trim()}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium"
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-primary hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-semibold active:scale-[0.98]"
             >
               {status === "loading" ? (
                 <Loader2 size={15} className="animate-spin" />

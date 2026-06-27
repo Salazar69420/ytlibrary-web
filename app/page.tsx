@@ -42,6 +42,7 @@ export default function Home() {
   const [showNewBrain, setShowNewBrain] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastIndexRef = useRef<number | null>(null);
 
   // ── data loading ─────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -66,7 +67,7 @@ export default function Home() {
   useEffect(() => { load(); }, [load]);
 
   // ── select mode ───────────────────────────────────────────────────────────
-  const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()); };
+  const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()); lastIndexRef.current = null; };
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -77,15 +78,36 @@ export default function Home() {
     });
   };
 
-  const handleCardClick = (video: Video) => {
-    if (selectMode) { toggleSelect(video.video_id); return; }
+  const handleCardClick = (video: Video, index: number, e: React.MouseEvent) => {
+    if (selectMode) {
+      // Shift-click selects the contiguous range from the last interacted card.
+      if (e.shiftKey && lastIndexRef.current !== null) {
+        const start = Math.min(lastIndexRef.current, index);
+        const end = Math.max(lastIndexRef.current, index);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          for (let i = start; i <= end; i++) next.add(videos[i].video_id);
+          return next;
+        });
+      } else {
+        toggleSelect(video.video_id);
+      }
+      lastIndexRef.current = index;
+      return;
+    }
     setDetail(detail?.video_id === video.video_id ? null : video);
   };
 
-  const handleLongPress = (video: Video) => {
+  const handleLongPress = (video: Video, index: number) => {
     setSelectMode(true);
-    setSelected(new Set([video.video_id]));
+    setSelected((prev) => new Set(prev).add(video.video_id));
+    lastIndexRef.current = index;
     setDetail(null);
+  };
+
+  const toggleSelectAll = () => {
+    const ids = videos.map((v) => v.video_id);
+    setSelected((prev) => (prev.size >= ids.length && ids.length > 0 ? new Set() : new Set(ids)));
   };
 
   // ── tab switching ─────────────────────────────────────────────────────────
@@ -151,7 +173,7 @@ export default function Home() {
   const isBrains  = tab === "brains";
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-bg text-[#f2f2f7]">
+    <div className="flex h-[100dvh] overflow-hidden bg-bg text-text">
 
       {/* ── Desktop sidebar ────────────────────────────────────────────── */}
       <aside className="hidden md:flex flex-col w-52 shrink-0 bg-surface border-r border-border overflow-y-auto">
@@ -179,7 +201,7 @@ export default function Home() {
           </SideSection>
         )}
         <SideSection label="Brains" action={
-          <button onClick={() => setShowNewBrain(true)} className="p-0.5 rounded hover:bg-hover text-subtle hover:text-[#f2f2f7] transition-colors">
+          <button onClick={() => setShowNewBrain(true)} className="p-0.5 rounded hover:bg-hover text-subtle hover:text-text transition-colors">
             <Plus size={13} />
           </button>
         }>
@@ -208,9 +230,9 @@ export default function Home() {
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <Brain size={18} className="text-primary" />
-                <span className="font-bold text-[#f2f2f7]">Brain Builder</span>
+                <span className="font-bold text-text">Brain Builder</span>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-subtle hover:text-[#f2f2f7] rounded-lg hover:bg-hover">
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-subtle hover:text-text rounded-lg hover:bg-hover">
                 <X size={18} />
               </button>
             </div>
@@ -237,7 +259,7 @@ export default function Home() {
               </SideSection>
             )}
             <SideSection label="Brains" action={
-              <button onClick={() => setShowNewBrain(true)} className="p-0.5 rounded hover:bg-hover text-subtle hover:text-[#f2f2f7]">
+              <button onClick={() => setShowNewBrain(true)} className="p-0.5 rounded hover:bg-hover text-subtle hover:text-text">
                 <Plus size={13} />
               </button>
             }>
@@ -251,10 +273,10 @@ export default function Home() {
             </SideSection>
             {/* Mobile-only data actions */}
             <div className="mt-auto px-3 pb-6 pt-3 border-t border-border flex flex-col gap-1">
-              <button onClick={handleImportData} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-[#f2f2f7] hover:bg-hover rounded-xl transition-colors">
+              <button onClick={handleImportData} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors">
                 <Upload size={15} /> Import backup
               </button>
-              <button onClick={handleExport} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-[#f2f2f7] hover:bg-hover rounded-xl transition-colors">
+              <button onClick={handleExport} className="flex items-center gap-2 px-2 py-2 text-sm text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors">
                 <Download size={15} /> Export backup
               </button>
             </div>
@@ -268,7 +290,7 @@ export default function Home() {
         {/* Header */}
         <header className="flex items-center gap-2 px-3 sm:px-4 h-12 border-b border-border bg-surface shrink-0">
           {/* Mobile hamburger */}
-          <button className="md:hidden p-1.5 text-subtle hover:text-[#f2f2f7] rounded-lg hover:bg-hover transition-colors"
+          <button className="md:hidden p-1.5 text-subtle hover:text-text rounded-lg hover:bg-hover transition-colors"
             onClick={() => setSidebarOpen(true)}>
             <Menu size={20} />
           </button>
@@ -289,18 +311,18 @@ export default function Home() {
                   value={librarySearch}
                   onChange={(e) => setLibrarySearch(e.target.value)}
                   placeholder={filter ? `Filter in ${filter.name}…` : "Filter library…"}
-                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-card border border-border rounded-xl text-[#f2f2f7] placeholder-muted focus:outline-none focus:border-primary/50 transition-colors"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-card border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary/50 transition-colors"
                 />
               </div>
             )}
             {isSearch && (
-              <span className="text-sm font-semibold text-[#f2f2f7]">Search YouTube</span>
+              <span className="text-sm font-semibold text-text">Search YouTube</span>
             )}
             {isBrains && !brainId && (
-              <span className="text-sm font-semibold text-[#f2f2f7]">Brains</span>
+              <span className="text-sm font-semibold text-text">Brains</span>
             )}
             {isBrains && brainId && (
-              <button onClick={() => { setBrainId(null); }} className="flex items-center gap-1 text-sm text-subtle hover:text-[#f2f2f7] transition-colors">
+              <button onClick={() => { setBrainId(null); }} className="flex items-center gap-1 text-sm text-subtle hover:text-text transition-colors">
                 <ChevronLeft size={14} /> Brains
               </button>
             )}
@@ -310,22 +332,22 @@ export default function Home() {
           <div className="flex items-center gap-1.5 shrink-0">
             {isLibrary && !selectMode && (
               <button onClick={() => { setSelectMode(true); }}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-subtle hover:text-[#f2f2f7] hover:bg-hover rounded-xl transition-colors">
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-subtle hover:text-text hover:bg-hover rounded-xl transition-colors">
                 <CheckSquare size={13} /> Select
               </button>
             )}
             {selectMode && (
               <button onClick={exitSelectMode}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#f2f2f7] bg-hover rounded-xl">
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text bg-hover rounded-xl">
                 <X size={13} /> Cancel
               </button>
             )}
             <button onClick={handleImportData} title="Import backup"
-              className="hidden md:flex p-1.5 text-subtle hover:text-[#f2f2f7] hover:bg-hover rounded-lg transition-colors">
+              className="hidden md:flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
               <Upload size={15} />
             </button>
             <button onClick={handleExport} title="Export backup"
-              className="hidden md:flex p-1.5 text-subtle hover:text-[#f2f2f7] hover:bg-hover rounded-lg transition-colors">
+              className="hidden md:flex p-1.5 text-subtle hover:text-text hover:bg-hover rounded-lg transition-colors">
               <Download size={15} />
             </button>
             <button onClick={() => setShowImport(true)}
@@ -353,17 +375,18 @@ export default function Home() {
                       {/* Mobile select toggle */}
                       {!selectMode && (
                         <button onClick={() => setSelectMode(true)}
-                          className="sm:hidden flex items-center gap-1 text-xs text-subtle hover:text-[#f2f2f7]">
+                          className="sm:hidden flex items-center gap-1 text-xs text-subtle hover:text-text">
                           <CheckSquare size={12} /> Select
                         </button>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
-                      {videos.map((v) => (
+                    <div key={filter?.name ?? "all"} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3 animate-fade-in">
+                      {videos.map((v, i) => (
                         <VideoCard key={v.video_id} video={v} tags={vtags[v.video_id]}
                           selected={selected.has(v.video_id)} selectMode={selectMode}
-                          onClick={() => handleCardClick(v)}
-                          onLongPress={() => handleLongPress(v)} />
+                          onClick={(e) => handleCardClick(v, i, e)}
+                          onLongPress={() => handleLongPress(v, i)}
+                          onQuickSelect={() => handleLongPress(v, i)} />
                       ))}
                     </div>
                   </>
@@ -394,14 +417,14 @@ export default function Home() {
 
           {/* Search */}
           {isSearch && (
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden animate-fade-in">
               <SearchView onImported={load} />
             </div>
           )}
 
           {/* Brains */}
           {isBrains && !brainId && (
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 animate-fade-in">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs text-subtle">{brains.length} brain{brains.length !== 1 ? "s" : ""}</p>
                 <button onClick={() => setShowNewBrain(true)}
@@ -423,7 +446,7 @@ export default function Home() {
                         <Brain size={18} className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#f2f2f7] truncate">{b.name}</p>
+                        <p className="text-sm font-semibold text-text truncate">{b.name}</p>
                         {b.description && <p className="text-xs text-subtle truncate">{b.description}</p>}
                       </div>
                       <span className="text-xs text-muted shrink-0 group-hover:text-subtle transition-colors">
@@ -437,7 +460,7 @@ export default function Home() {
           )}
 
           {isBrains && brainId && (
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden animate-fade-in">
               <BrainView brainId={brainId} onBack={() => setBrainId(null)} onChanged={load} />
             </div>
           )}
@@ -455,6 +478,9 @@ export default function Home() {
       {/* ── Multi-select bar ────────────────────────────────────────────── */}
       {selectMode && selected.size > 0 && (
         <SelectionBar selectedIds={selectedArr} brains={brains}
+          totalCount={videos.length}
+          allSelected={selected.size >= videos.length && videos.length > 0}
+          onToggleSelectAll={toggleSelectAll}
           onClear={exitSelectMode} onDeleted={load} />
       )}
 
@@ -479,10 +505,11 @@ function SideItem({ icon, label, active, onClick, badge, className }: {
 }) {
   return (
     <button onClick={onClick} className={cn(
-      "flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-sm transition-colors",
-      active ? "bg-primary/15 text-primary" : "text-subtle hover:text-[#f2f2f7] hover:bg-hover",
+      "relative flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-sm transition-all duration-150 ease-out-soft",
+      active ? "bg-primary/15 text-primary" : "text-subtle hover:text-text hover:bg-hover",
       className
     )}>
+      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-primary" />}
       {icon && <span className="shrink-0">{icon}</span>}
       <span className="truncate flex-1">{label}</span>
       {badge !== undefined && badge > 0 && <span className="text-[10px] text-muted shrink-0">{badge}</span>}
@@ -510,7 +537,11 @@ function BottomTab({ icon, label, active, onClick, badge }: {
       "flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium relative transition-colors",
       active ? "text-primary" : "text-subtle"
     )}>
-      <span className={cn("transition-transform duration-150", active && "scale-110")}>{icon}</span>
+      <span className={cn(
+        "absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-full bg-primary transition-all duration-200 ease-out-soft",
+        active ? "w-8 opacity-100" : "w-0 opacity-0"
+      )} />
+      <span className={cn("transition-transform duration-150 ease-out-soft", active && "scale-110 -translate-y-0.5")}>{icon}</span>
       {label}
       {badge !== undefined && (
         <span className="absolute top-1.5 right-1/4 translate-x-3 w-4 h-4 bg-primary rounded-full text-[9px] text-white flex items-center justify-center font-bold">
@@ -528,7 +559,7 @@ function EmptyLibrary({ onImport, onSearch }: { onImport: () => void; onSearch: 
         <Brain size={36} className="text-primary/50" />
       </div>
       <div>
-        <h2 className="text-lg font-bold text-[#f2f2f7] mb-1">Library is empty</h2>
+        <h2 className="text-lg font-bold text-text mb-1">Library is empty</h2>
         <p className="text-sm text-subtle max-w-xs">Search YouTube or paste a URL to start building your AI video library.</p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
@@ -537,7 +568,7 @@ function EmptyLibrary({ onImport, onSearch }: { onImport: () => void; onSearch: 
           <Search size={15} /> Search YouTube
         </button>
         <button onClick={onImport}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-card hover:bg-hover border border-border text-[#f2f2f7] text-sm font-semibold rounded-2xl transition-colors active:scale-95">
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-card hover:bg-hover border border-border text-text text-sm font-semibold rounded-2xl transition-colors active:scale-95">
           <Plus size={15} /> Import URL
         </button>
       </div>

@@ -80,18 +80,18 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
     : `https://i.ytimg.com/vi/${video.video_id}/hqdefault.jpg`;
 
   return (
-    <div className="flex flex-col h-full bg-surface-raised border-l border-surface-border overflow-y-auto">
+    <div className="flex flex-col h-full bg-surface md:border-l border-border overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-surface-border sticky top-0 bg-surface-raised z-10">
-        <h2 className="text-sm font-semibold text-gray-200 truncate pr-2">Video Detail</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded hover:bg-surface-hover">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
+        <h2 className="text-sm font-semibold text-dim truncate pr-2">Video Detail</h2>
+        <button onClick={onClose} className="text-subtle hover:text-text p-1 rounded-lg hover:bg-hover transition-colors">
           <X size={18} />
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-5">
+      <div className="p-4 flex flex-col gap-5 safe-bottom">
         {/* Thumbnail */}
-        <div className="rounded-lg overflow-hidden aspect-video bg-black">
+        <div className="rounded-xl overflow-hidden aspect-video bg-black shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={thumb}
@@ -103,21 +103,21 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
 
         {/* Title + links */}
         <div>
-          <h3 className="text-base font-semibold text-white leading-snug mb-1">{video.title}</h3>
-          <p className="text-sm text-blue-400 mb-3">{video.channel}</p>
+          <h3 className="text-base font-semibold text-text leading-snug mb-1">{video.title}</h3>
+          <p className="text-sm text-primary mb-3">{video.channel}</p>
           <div className="flex gap-2 flex-wrap">
             <a
               href={video.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-xs bg-red-900/40 hover:bg-red-900/60 text-red-300 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs bg-card hover:bg-hover border border-border text-dim hover:text-text px-3 py-1.5 rounded-xl transition-colors active:scale-[0.98]"
             >
               <ExternalLink size={12} />
               Watch on YouTube
             </a>
             <button
               onClick={handleDelete}
-              className="flex items-center gap-1.5 text-xs bg-surface-card hover:bg-red-900/30 text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs bg-danger/10 hover:bg-danger text-danger hover:text-white px-3 py-1.5 rounded-xl transition-colors active:scale-[0.98]"
             >
               <Trash2 size={12} />
               Delete
@@ -142,7 +142,7 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
         <Section title="Tags" icon={<Tag size={14} />}>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {tags.map((t) => (
-              <span key={t} className="flex items-center gap-1 text-xs bg-brand-muted text-blue-300 px-2 py-1 rounded-full">
+              <span key={t} className="flex items-center gap-1 text-xs bg-primary/15 text-primary px-2 py-1 rounded-full">
                 {t}
                 <button onClick={() => handleRemoveTag(t)} className="hover:text-white ml-0.5">
                   <X size={10} />
@@ -156,11 +156,11 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
               onChange={(e) => setNewTag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddTag(newTag)}
               placeholder="Add tag..."
-              className="flex-1 text-xs bg-surface-card border border-surface-border rounded-lg px-2.5 py-1.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand"
+              className="flex-1 text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text placeholder-muted focus:outline-none focus:border-primary/60 transition-colors"
             />
             <button
               onClick={() => handleAddTag(newTag)}
-              className="px-2.5 py-1.5 bg-brand hover:bg-brand-hover text-white text-xs rounded-lg transition-colors"
+              className="px-2.5 py-1.5 bg-primary hover:bg-primary-dim text-white text-xs rounded-xl transition-colors active:scale-[0.98]"
             >
               <Plus size={13} />
             </button>
@@ -174,7 +174,7 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
                   <button
                     key={t.id}
                     onClick={() => handleAddTag(t.name)}
-                    className="text-[11px] text-gray-500 hover:text-gray-300 border border-surface-border hover:border-gray-500 px-2 py-0.5 rounded-full transition-colors"
+                    className="text-[11px] text-subtle hover:text-text border border-border hover:border-muted px-2 py-0.5 rounded-full transition-colors"
                   >
                     + {t.name}
                   </button>
@@ -191,13 +191,13 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
                 <button
                   key={b.id}
                   onClick={() => handleAddToBrain(b.id!)}
-                  className="flex items-center justify-between text-xs bg-surface-card hover:bg-surface-hover border border-surface-border rounded-lg px-3 py-2 transition-colors text-left"
+                  className="flex items-center justify-between text-xs bg-card hover:bg-hover border border-border rounded-xl px-3 py-2 transition-colors text-left active:scale-[0.99]"
                 >
-                  <span className="text-gray-200 truncate">{b.name}</span>
+                  <span className="text-dim truncate">{b.name}</span>
                   {addingToBrain === b.id ? (
-                    <Check size={13} className="text-green-400 shrink-0" />
+                    <Check size={13} className="text-success shrink-0 animate-pop-in" />
                   ) : (
-                    <Plus size={13} className="text-gray-500 shrink-0" />
+                    <Plus size={13} className="text-subtle shrink-0" />
                   )}
                 </button>
               ))}
@@ -211,21 +211,21 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
             <div className="flex justify-between items-center mb-2">
               <button
                 onClick={() => setShowTranscript((v) => !v)}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200"
+                className="flex items-center gap-1 text-xs text-subtle hover:text-text transition-colors"
               >
                 {showTranscript ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 {showTranscript ? "Hide" : "Show"} transcript
               </button>
               <button
                 onClick={handleCopyTranscript}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-400"
+                className="flex items-center gap-1 text-xs text-subtle hover:text-primary transition-colors"
               >
-                {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                {copied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
             {showTranscript && (
-              <div className="text-xs text-gray-400 leading-relaxed bg-surface-card rounded-lg p-3 max-h-48 overflow-y-auto border border-surface-border whitespace-pre-wrap">
+              <div className="text-xs text-dim leading-relaxed bg-card rounded-xl p-3 max-h-48 overflow-y-auto border border-border whitespace-pre-wrap animate-fade-in">
                 {video.transcript}
               </div>
             )}
@@ -238,12 +238,12 @@ export default function DetailPanel({ video, onClose, onUpdate, onDelete }: Prop
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-surface-card rounded-lg p-2.5 flex flex-col gap-1">
-      <div className="flex items-center gap-1 text-gray-500 text-[10px]">
+    <div className="bg-card border border-border rounded-xl p-2.5 flex flex-col gap-1">
+      <div className="flex items-center gap-1 text-subtle text-[10px]">
         {icon}
         {label}
       </div>
-      <span className="text-xs text-gray-200 font-medium">{value}</span>
+      <span className="text-xs text-text font-medium">{value}</span>
     </div>
   );
 }
@@ -251,7 +251,7 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-subtle uppercase tracking-wider mb-2">
         {icon}
         {title}
       </div>
